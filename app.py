@@ -7,23 +7,22 @@ import streamlit as st
 
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/sriharshaganjam/AI-Debate-Agent/main/debate_model.pkl"
 
-# 🔹 Define DebateAgent Class (Needed for Pickle to Load the Model)
 class DebateAgent:
     def __init__(self):
         pass
 
     def debate(self, topic):
-        pro_links = get_search_results(f"benefits of {topic}")
+        pro_links = get_search_results(f"advantages of {topic}")
         con_links = get_search_results(f"disadvantages of {topic}")
-        
-        pro_points = [scrape_and_summarize(link) for link in pro_links]
-        con_points = [scrape_and_summarize(link) for link in con_links]
 
-        # 🔹 Ensure we have at least one valid argument
+        pro_points = [scrape_and_summarize(link) for link in pro_links if link]
+        con_points = [scrape_and_summarize(link) for link in con_links if link]
+
+        # Ensure at least one argument is returned
         if not any(pro_points):
-            pro_points = ["No strong arguments found."]
+            pro_points = ["⚠️ No strong arguments found."]
         if not any(con_points):
-            con_points = ["No strong arguments found."]
+            con_points = ["⚠️ No strong arguments found."]
 
         return {
             "Pro": {"arguments": pro_points, "sources": pro_links},
@@ -36,27 +35,25 @@ def load_model():
     try:
         response = requests.get(GITHUB_RAW_URL, stream=True)
         response.raise_for_status()
-        debate_agent = pickle.loads(response.content)  
+        debate_agent = pickle.loads(response.content)
         return debate_agent
     except Exception as e:
         st.error(f"⚠️ Error downloading debate model: {e}")
         return None
 
 def get_search_results(query):
-    """Fetches search results directly from Google"""
+    """Fetches search results from DuckDuckGo"""
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-        url = f"https://www.google.com/search?q={query.replace(' ', '+')}"
-        response = requests.get(url, headers=headers)
+        url = f"https://html.duckduckgo.com/html/?q={query.replace(' ', '+')}"
+        response = requests.get(url)
         soup = BeautifulSoup(response.text, "html.parser")
 
         links = []
-        for g in soup.find_all('div', class_='tF2Cxc'):
-            link = g.find('a')['href']
-            links.append(link)
-            if len(links) >= 3:
+        for result in soup.find_all("a", class_="result__a"):
+            link = result.get("href")
+            if link and link.startswith("http"):
+                links.append(link)
+            if len(links) >= 5:  # Get more results for better accuracy
                 break
 
         return links
@@ -69,24 +66,24 @@ def scrape_and_summarize(url):
     try:
         response = requests.get(url, timeout=5)
         soup = BeautifulSoup(response.text, "html.parser")
-        paragraphs = soup.find_all("p")
-        text = " ".join([p.text for p in paragraphs[:5]])  
 
-        if not text.strip():
-            return "Could not fetch content."
+        paragraphs = soup.find_all("p")
+        text = " ".join([p.text for p in paragraphs[:5]]).strip()
+
+        if not text:
+            return "⚠️ Could not extract content from this page."
 
         # Load summarization model
         model_name = "facebook/bart-large-cnn"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
-        # Summarize extracted text
         inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=1024)
         summary_ids = model.generate(inputs["input_ids"], max_length=250, min_length=100, length_penalty=2.0)
         summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
         return summary
-    except:
-        return "Could not fetch content."
+    except Exception:
+        return "⚠️ Could not fetch content."
 
 debate_agent = load_model()
 
@@ -108,7 +105,6 @@ if debate_agent:
             for arg in con_arguments:
                 st.write(f"🔴 {arg}")
 
-            # 🏆 Voting Results
             if st.button("Submit Vote"):
                 st.success(f"🏆 Winner: {'Pro' if pro_vote else 'Con'}")
         else:
