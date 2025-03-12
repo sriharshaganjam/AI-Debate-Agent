@@ -1,3 +1,10 @@
+import subprocess
+import sys
+
+# Check installed packages
+installed_packages = subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True)
+print(installed_packages.stdout)  # Print all installed packages to logs
+
 import os
 os.system("pip install beautifulsoup4 requests")
 
