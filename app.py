@@ -1,5 +1,11 @@
 import subprocess
 import sys
+
+subprocess.run([sys.executable, "-m", "pip", "install", "serpapi"], check=True)
+
+
+import subprocess
+import sys
 import os
 import pickle
 import requests
