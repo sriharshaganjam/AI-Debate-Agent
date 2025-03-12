@@ -1,15 +1,20 @@
 import subprocess
 import sys
 
-# Ensure required packages are installed before importing them
-subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "serpapi", "beautifulsoup4", "requests"], check=True)
+# Force install missing packages
+try:
+    subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "serpapi"], check=True)
+except Exception as e:
+    print(f"⚠️ Failed to install serpapi: {e}")
 
+# Now import required modules
 import streamlit as st
 import pickle
 import requests
 from bs4 import BeautifulSoup
-from serpapi import GoogleSearch  # Now it won't fail
+from serpapi import GoogleSearch  # This should now work
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
 
 
 
