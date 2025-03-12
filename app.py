@@ -1,98 +1,55 @@
 import streamlit as st
 import pickle
-import requests
-import io
-import pickle
 
+# Define the class before loading the model
 class DebateAgent:
     def __init__(self, api_key):
         self.api_key = api_key
 
     def get_web_results(self, query):
-        pass  # Placeholder, function will be loaded from pickle
+        pass  # Placeholder
 
     def scrape_and_summarize(self, url):
-        pass  # Placeholder, function will be loaded from pickle
+        pass  # Placeholder
 
     def debate(self, topic):
-        pass  # Placeholder, function will be loaded from pickle
+        pass  # Placeholder
 
 # Load the debate model
-with open("debate_model.pkl", "rb") as f:
-    debate_agent = pickle.load(f)
-
-# Now you can use debate_agent.debate("climate change")
-
-
-# Load the debate model from GitHub
-DEBATE_MODEL_URL = "https://github.com/sriharshaganjam/AI-Debate-Agent/raw/refs/heads/main/debate_model.pkl" 
-
-@st.cache_data
-def load_model():
-    """Downloads and loads the debate model from GitHub with error handling"""
-    try:
-        response = requests.get(DEBATE_MODEL_URL)
-        response.raise_for_status()  # Check if download was successful
-
-        file_content = io.BytesIO(response.content)  # Read as binary
-        model = pickle.load(file_content)  # Try loading the model
-        return model
-
-    except pickle.UnpicklingError:
-        st.error("⚠️ Error: Model file is corrupted or incompatible.")
-    except Exception as e:
-        st.error(f"⚠️ Unexpected error loading model: {str(e)}")
-    return None
-
-# Try loading the model
-debate = load_model()
-
-if debate is None:
-    st.stop()  # Prevents the app from running further if the model fails
+try:
+    with open("debate_model.pkl", "rb") as f:
+        debate_agent = pickle.load(f)
+except Exception as e:
+    st.error(f"⚠️ Unexpected error loading model: {e}")
+    st.stop()
 
 # Streamlit UI
-st.title("🤖 AI Debating Agent - Pro vs. Con")
+st.title("AI Debate Agent")
 
-# User enters the debate topic
+# User input box for debate topic
 topic = st.text_input("Enter a debate topic:", "")
 
-if topic and debate:
-    st.write(f"**Debating Topic:** {topic}")
+if topic:
+    st.write(f"**Debating topic: {topic}**")
     
-    # Start Debate
-    debate_data = debate(topic)
+    # Get debate results
+    results = debate_agent.debate(topic)
+
+    # Display results
+    col1, col2 = st.columns(2)
     
-    # Store scores
-    if "scores" not in st.session_state:
-        st.session_state.scores = {"Pro": 0, "Con": 0}
-    
-    # Five rounds of debate
-    for i in range(5):
-        st.subheader(f"**Round {i+1}**")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("### ✅ Pro Argument")
-            st.success(debate_data["Pro"]["arguments"][i % len(debate_data["Pro"]["arguments"])])
-            st.markdown(f"[Source]({debate_data['Pro']['sources'][i % len(debate_data['Pro']['sources'])]})")
-        
-        with col2:
-            st.markdown("### ❌ Con Argument")
-            st.error(debate_data["Con"]["arguments"][i % len(debate_data["Con"]["arguments"])])
-            st.markdown(f"[Source]({debate_data['Con']['sources'][i % len(debate_data['Con']['sources'])]})")
-        
-        # User voting
-        winner = st.radio(f"**Who won Round {i+1}?**", ["Pro", "Con"], key=f"round_{i+1}")
-        if st.button(f"Submit Vote for Round {i+1}", key=f"vote_{i+1}"):
-            st.session_state.scores[winner] += 1
-    
-    # Final Score
-    st.subheader("🏆 Final Score")
-    st.write(f"**Pro:** {st.session_state.scores['Pro']}  |  **Con:** {st.session_state.scores['Con']}")
-    
-    if st.session_state.scores["Pro"] > st.session_state.scores["Con"]:
-        st.success("🎉 Pro wins the debate!")
-    elif st.session_state.scores["Pro"] < st.session_state.scores["Con"]:
-        st.error("🚀 Con wins the debate!")
-    else:
-        st.warning("⚖️ It's a tie!")
+    with col1:
+        st.markdown("### ✅ Pro Arguments")
+        for i, argument in enumerate(results["Pro"]["arguments"]):
+            st.markdown(f"🟢 **Point {i+1}:** {argument}")
+        st.markdown(f"🔗 [Source 1]({results['Pro']['sources'][0]}) | [Source 2]({results['Pro']['sources'][1]})")
+
+    with col2:
+        st.markdown("### ❌ Con Arguments")
+        for i, argument in enumerate(results["Con"]["arguments"]):
+            st.markdown(f"🔴 **Point {i+1}:** {argument}")
+        st.markdown(f"🔗 [Source 1]({results['Con']['sources'][0]}) | [Source 2]({results['Con']['sources'][1]})")
+
+# Restart button
+if st.button("Restart Debate"):
+    st.experimental_rerun()
