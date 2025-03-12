@@ -4,7 +4,7 @@ import requests
 import io
 
 # Load the debate model from GitHub
-DEBATE_MODEL_URL = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/AI-Debate-Agent/main/debate_model.pkl"
+DEBATE_MODEL_URL = "https://github.com/sriharshaganjam/AI-Debate-Agent/raw/refs/heads/main/debate_model.pkl" 
 
 @st.cache_data
 def load_model():
