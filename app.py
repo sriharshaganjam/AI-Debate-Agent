@@ -1,65 +1,40 @@
-import streamlit as st
 import pickle
+import requests
+from bs4 import BeautifulSoup
+from serpapi import GoogleSearch
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import streamlit as st
 
-# Define the class before loading
-class DebateAgent:
-    def __init__(self, api_key):
-        self.api_key = api_key
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/debate_model.pkl"
 
-    def get_web_results(self, query):
-        pass  
+@st.cache_resource
+def load_model():
+    """Downloads and loads the debate model"""
+    try:
+        response = requests.get(GITHUB_RAW_URL, stream=True)
+        response.raise_for_status()
+        debate_agent = pickle.loads(response.content)
+        return debate_agent
+    except Exception as e:
+        st.error(f"⚠️ Error downloading debate model: {e}")
+        return None
 
-    def scrape_and_summarize(self, url):
-        pass  
+debate_agent = load_model()
 
-    def debate(self, topic):
-        pass  
+if debate_agent:
+    topic = st.text_input("Enter a debate topic:", "Artificial Intelligence")
+    if st.button("Start Debate"):
+        results = debate_agent.debate(topic)
 
-# Load the debate model
-try:
-    with open("debate_model.pkl", "rb") as f:
-        debate_agent = pickle.load(f)  # Now loads an object, not a function
-except Exception as e:
-    st.error(f"⚠️ Unexpected error loading model: {e}")
-    st.stop()
+        if results and isinstance(results, dict):
+            st.write("### Pro Arguments:")
+            for arg in results["Pro"]["arguments"]:
+                st.write(f"🟢 {arg}")
 
-# Check if model loaded properly
-if not debate_agent:
-    st.error("⚠️ Debate model failed to load.")
-    st.stop()
-
-st.title("AI Debate Agent")
-
-topic = st.text_input("Enter a debate topic:", "")
-
-if topic:
-    st.write(f"**Debating topic: {topic}**")
-    
-    # Debugging: Print debate results before displaying
-    results = debate_agent.debate(topic)
-    st.write("Debugging: Debate results:", results)  # Debugging print
-    
-    if results is None or "Pro" not in results or "Con" not in results:
-        st.error("⚠️ Debate function returned None or unexpected format.")
-        st.stop()
-
-    # Display results
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("### ✅ Pro Arguments")
-        for i, argument in enumerate(results["Pro"]["arguments"]):
-            st.markdown(f"🟢 **Point {i+1}:** {argument}")
-        if results["Pro"]["sources"]:
-            st.markdown(f"🔗 [Source 1]({results['Pro']['sources'][0]})")
-
-    with col2:
-        st.markdown("### ❌ Con Arguments")
-        for i, argument in enumerate(results["Con"]["arguments"]):
-            st.markdown(f"🔴 **Point {i+1}:** {argument}")
-        if results["Con"]["sources"]:
-            st.markdown(f"🔗 [Source 1]({results['Con']['sources'][0]})")
-
-# Restart button
-if st.button("Restart Debate"):
-    st.experimental_rerun()
+            st.write("### Con Arguments:")
+            for arg in results["Con"]["arguments"]:
+                st.write(f"🔴 {arg}")
+        else:
+            st.warning("⚠️ Debate function returned None or unexpected format.")
+else:
+    st.warning("⚠️ Model failed to load.")
