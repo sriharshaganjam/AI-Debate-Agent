@@ -1,7 +1,9 @@
 import subprocess
 import sys
 
-subprocess.run([sys.executable, "-m", "pip", "install", "serpapi"], check=True)
+installed_packages = subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True)
+print(installed_packages.stdout)  # Print installed packages to logs
+
 
 
 import subprocess
