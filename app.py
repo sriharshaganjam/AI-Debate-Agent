@@ -1,3 +1,6 @@
+import os
+os.system("pip install beautifulsoup4 requests")
+
 import pickle
 import requests
 from bs4 import BeautifulSoup
