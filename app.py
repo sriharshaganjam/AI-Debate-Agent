@@ -8,18 +8,26 @@ DEBATE_MODEL_URL = "https://github.com/sriharshaganjam/AI-Debate-Agent/raw/refs/
 
 @st.cache_data
 def load_model():
-    """Downloads and loads the debate model from GitHub"""
-    response = requests.get(DEBATE_MODEL_URL)
-    
-    if response.status_code == 200:
-        file_content = io.BytesIO(response.content)  # Read as binary
-        return pickle.load(file_content)  # Unpickle properly
-    else:
-        st.error("Error downloading debate model. Check your GitHub link!")
-        return None
+    """Downloads and loads the debate model from GitHub with error handling"""
+    try:
+        response = requests.get(DEBATE_MODEL_URL)
+        response.raise_for_status()  # Check if download was successful
 
-# Load the model
+        file_content = io.BytesIO(response.content)  # Read as binary
+        model = pickle.load(file_content)  # Try loading the model
+        return model
+
+    except pickle.UnpicklingError:
+        st.error("⚠️ Error: Model file is corrupted or incompatible.")
+    except Exception as e:
+        st.error(f"⚠️ Unexpected error loading model: {str(e)}")
+    return None
+
+# Try loading the model
 debate = load_model()
+
+if debate is None:
+    st.stop()  # Prevents the app from running further if the model fails
 
 # Streamlit UI
 st.title("🤖 AI Debating Agent - Pro vs. Con")
