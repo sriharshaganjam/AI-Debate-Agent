@@ -35,7 +35,13 @@ def load_model():
     try:
         response = requests.get(GITHUB_RAW_URL, stream=True)
         response.raise_for_status()
+
+        # ✅ Fix: Ensure `DebateAgent` is defined before deserializing the model
         debate_agent = pickle.loads(response.content)
+        
+        if not isinstance(debate_agent, DebateAgent):
+            raise ValueError("Loaded object is not an instance of DebateAgent")
+
         return debate_agent
     except Exception as e:
         st.error(f"⚠️ Error downloading debate model: {e}")
