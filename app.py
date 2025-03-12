@@ -1,6 +1,7 @@
 import streamlit as st
 import pickle
 import requests
+import io
 
 # Load the debate model from GitHub
 DEBATE_MODEL_URL = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/AI-Debate-Agent/main/debate_model.pkl"
@@ -9,10 +10,13 @@ DEBATE_MODEL_URL = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/AI-De
 def load_model():
     """Downloads and loads the debate model from GitHub"""
     response = requests.get(DEBATE_MODEL_URL)
-    with open("debate_model.pkl", "wb") as f:
-        f.write(response.content)
-    with open("debate_model.pkl", "rb") as f:
-        return pickle.load(f)
+    
+    if response.status_code == 200:
+        file_content = io.BytesIO(response.content)  # Read as binary
+        return pickle.load(file_content)  # Unpickle properly
+    else:
+        st.error("Error downloading debate model. Check your GitHub link!")
+        return None
 
 # Load the model
 debate = load_model()
@@ -23,7 +27,7 @@ st.title("🤖 AI Debating Agent - Pro vs. Con")
 # User enters the debate topic
 topic = st.text_input("Enter a debate topic:", "")
 
-if topic:
+if topic and debate:
     st.write(f"**Debating Topic:** {topic}")
     
     # Start Debate
@@ -63,4 +67,3 @@ if topic:
         st.error("🚀 Con wins the debate!")
     else:
         st.warning("⚖️ It's a tie!")
-
