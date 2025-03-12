@@ -18,7 +18,13 @@ class DebateAgent:
         
         pro_points = [scrape_and_summarize(link) for link in pro_links]
         con_points = [scrape_and_summarize(link) for link in con_links]
-        
+
+        # 🔹 Ensure we have at least one valid argument
+        if not any(pro_points):
+            pro_points = ["No strong arguments found."]
+        if not any(con_points):
+            con_points = ["No strong arguments found."]
+
         return {
             "Pro": {"arguments": pro_points, "sources": pro_links},
             "Con": {"arguments": con_points, "sources": con_links}
@@ -30,7 +36,7 @@ def load_model():
     try:
         response = requests.get(GITHUB_RAW_URL, stream=True)
         response.raise_for_status()
-        debate_agent = pickle.loads(response.content)  # 🔹 Load Model
+        debate_agent = pickle.loads(response.content)  
         return debate_agent
     except Exception as e:
         st.error(f"⚠️ Error downloading debate model: {e}")
@@ -66,6 +72,9 @@ def scrape_and_summarize(url):
         paragraphs = soup.find_all("p")
         text = " ".join([p.text for p in paragraphs[:5]])  
 
+        if not text.strip():
+            return "Could not fetch content."
+
         # Load summarization model
         model_name = "facebook/bart-large-cnn"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -83,17 +92,25 @@ debate_agent = load_model()
 
 if debate_agent:
     topic = st.text_input("Enter a debate topic:", "Artificial Intelligence")
+    
     if st.button("Start Debate"):
         results = debate_agent.debate(topic)
 
         if results and isinstance(results, dict):
             st.write("### Pro Arguments:")
-            for arg in results["Pro"]["arguments"]:
-                st.write(f"🟢 {arg}")
+            pro_arguments = results["Pro"]["arguments"]
+            con_arguments = results["Con"]["arguments"]
+
+            pro_vote = st.radio("Vote for a Pro Argument:", pro_arguments, key="pro")
+            con_vote = st.radio("Vote for a Con Argument:", con_arguments, key="con")
 
             st.write("### Con Arguments:")
-            for arg in results["Con"]["arguments"]:
+            for arg in con_arguments:
                 st.write(f"🔴 {arg}")
+
+            # 🏆 Voting Results
+            if st.button("Submit Vote"):
+                st.success(f"🏆 Winner: {'Pro' if pro_vote else 'Con'}")
         else:
             st.warning("⚠️ Debate function returned None or unexpected format.")
 else:
