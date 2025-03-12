@@ -18,7 +18,7 @@ class DebateAgent:
 # Load the debate model
 try:
     with open("debate_model.pkl", "rb") as f:
-        debate_agent = pickle.load(f)
+        debate_agent = pickle.load(f)  # Now loads an object, not a function
 except Exception as e:
     st.error(f"⚠️ Unexpected error loading model: {e}")
     st.stop()
