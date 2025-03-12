@@ -1,20 +1,16 @@
 import subprocess
 import sys
 
-installed_packages = subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True)
-print(installed_packages.stdout)  # Print installed packages to logs
+# Ensure serpapi is installed
+subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "serpapi"], check=True)
 
-
-
-import subprocess
-import sys
-import os
+import streamlit as st
 import pickle
 import requests
-import streamlit as st
 from bs4 import BeautifulSoup
-from serpapi import GoogleSearch
+from serpapi import GoogleSearch  # Now import after installation
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
 
 # Ensure required packages are installed
 def install_missing_packages():
