@@ -5,7 +5,7 @@ from serpapi import GoogleSearch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import streamlit as st
 
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/debate_model.pkl"
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/sriharshaganjam/AI-Debate-Agent/main/debate_model.pkl"
 
 @st.cache_resource
 def load_model():
