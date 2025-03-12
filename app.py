@@ -2,6 +2,27 @@ import streamlit as st
 import pickle
 import requests
 import io
+import pickle
+
+class DebateAgent:
+    def __init__(self, api_key):
+        self.api_key = api_key
+
+    def get_web_results(self, query):
+        pass  # Placeholder, function will be loaded from pickle
+
+    def scrape_and_summarize(self, url):
+        pass  # Placeholder, function will be loaded from pickle
+
+    def debate(self, topic):
+        pass  # Placeholder, function will be loaded from pickle
+
+# Load the debate model
+with open("debate_model.pkl", "rb") as f:
+    debate_agent = pickle.load(f)
+
+# Now you can use debate_agent.debate("climate change")
+
 
 # Load the debate model from GitHub
 DEBATE_MODEL_URL = "https://github.com/sriharshaganjam/AI-Debate-Agent/raw/refs/heads/main/debate_model.pkl" 
