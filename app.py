@@ -240,7 +240,7 @@ else:
                 "winner": None
             }
             st.session_state.debate_history.append(debate_round)
-            st.experimental_rerun()
+            st.rerun()
     
     # Display debate history and collect votes
     for i, round_data in enumerate(st.session_state.debate_history):
@@ -284,7 +284,7 @@ else:
                     if st.session_state.current_round > 5:
                         st.session_state.winner_declared = True
                     
-                    st.experimental_rerun()
+                    st.rerun()
             
             with col2:
                 if st.button(f"Vote for Con Argument", key=f"con_{round_num}_{sub_round}"):
@@ -302,7 +302,7 @@ else:
                     if st.session_state.current_round > 5:
                         st.session_state.winner_declared = True
                     
-                    st.experimental_rerun()
+                    st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
         else:
@@ -338,4 +338,4 @@ else:
             st.session_state.sub_round = 1
             st.session_state.debate_history = []
             st.session_state.winner_declared = False
-            st.experimental_rerun()
+            st.rerun()
