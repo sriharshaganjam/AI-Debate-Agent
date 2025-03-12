@@ -160,7 +160,7 @@ if not st.session_state.game_active:
             st.session_state.sub_round = 1
             st.session_state.debate_history = []
             st.session_state.winner_declared = False
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Please select or enter a topic to start the debate.")
 
