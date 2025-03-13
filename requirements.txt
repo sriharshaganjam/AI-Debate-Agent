@@ -5,3 +5,4 @@ serpapi
 transformers
 
 torch
+google-search-results==2.4.2  # or whatever the latest version is
