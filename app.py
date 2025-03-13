@@ -26,8 +26,10 @@ if 'user_selection' not in st.session_state:
     st.session_state.user_selection = None
 
 # API credentials - make sure to set these in your environment variables
-SERPAPI_API_KEY = "b1d3ccaa8b3dc0bd183b2ca10a6975131d5a07da5d4bfd5e1df1071b304044be"
-DEEPSEEK_API_KEY = "sk-022f92d4757f4479803db4d2ced57cd0"
+# Option 1: If you want to use environment variables properly
+SERPAPI_API_KEY = os.environ.get("SERPAPI_API_KEY", "b1d3ccaa8b3dc0bd183b2ca10a6975131d5a07da5d4bfd5e1df1071b304044be")
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-022f92d4757f4479803db4d2ced57cd0")
+
 
 # Function to search the web using SerpAPI
 def search_web(query, num_results=5):
