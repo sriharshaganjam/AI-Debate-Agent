@@ -2,7 +2,6 @@ import os
 import streamlit as st
 import time
 import json
-from openai import OpenAI
 import requests
 from datetime import datetime
 
@@ -13,12 +12,6 @@ os.environ["DEEPSEEK_API_KEY"] = "sk-022f92d4757f4479803db4d2ced57cd0"
 # Constants for API access
 SERPAPI_API_KEY = "b1d3ccaa8b3dc0bd183b2ca10a6975131d5a07da5d4bfd5e1df1071b304044be"
 DEEPSEEK_API_KEY = "sk-022f92d4757f4479803db4d2ced57cd0"
-
-# Initialize the DeepSeek client
-client = OpenAI(
-    api_key=DEEPSEEK_API_KEY,
-    base_url="https://api.deepseek.com/v1"
-)
 
 # Cache for storing search results
 if "search_cache" not in st.session_state:
@@ -62,7 +55,7 @@ def search_serpapi(query, num_results=5):
     return []
 
 def generate_pro_argument(topic, research_results):
-    """Generate a pro argument using DeepSeek API"""
+    """Generate a pro argument using DeepSeek API with direct HTTP request"""
     # Convert research to a formatted string for the prompt
     research_text = "\n\n".join([
         f"Title: {item['title']}\nURL: {item['link']}\nSnippet: {item['snippet']}"
@@ -76,21 +69,34 @@ def generate_pro_argument(topic, research_results):
     ]
     
     try:
-        # Make the API call with the explicit API key
-        response = client.chat.completions.create(
-            model="deepseek-chat",
-            messages=messages,
-            max_tokens=1000,
-            temperature=0.7,
-            top_p=0.95
-        )
-        return response.choices[0].message.content
+        # Make direct HTTP request to DeepSeek API
+        url = "https://api.deepseek.com/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}"
+        }
+        payload = {
+            "model": "deepseek-chat",
+            "messages": messages,
+            "max_tokens": 1000,
+            "temperature": 0.7,
+            "top_p": 0.95
+        }
+        
+        response = requests.post(url, json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+        else:
+            st.error(f"API Error: {response.status_code} - {response.text}")
+            return "I apologize, but I'm unable to generate an argument at this time due to an API error."
     except Exception as e:
         st.error(f"Error generating pro argument: {str(e)}")
         return "I apologize, but I'm unable to generate an argument at this time due to an API error."
 
 def generate_con_argument(topic, research_results):
-    """Generate a con argument using DeepSeek API"""
+    """Generate a con argument using DeepSeek API with direct HTTP request"""
     # Convert research to a formatted string for the prompt
     research_text = "\n\n".join([
         f"Title: {item['title']}\nURL: {item['link']}\nSnippet: {item['snippet']}"
@@ -104,15 +110,28 @@ def generate_con_argument(topic, research_results):
     ]
     
     try:
-        # Make the API call with the explicit API key
-        response = client.chat.completions.create(
-            model="deepseek-chat",
-            messages=messages,
-            max_tokens=1000,
-            temperature=0.7,
-            top_p=0.95
-        )
-        return response.choices[0].message.content
+        # Make direct HTTP request to DeepSeek API
+        url = "https://api.deepseek.com/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}"
+        }
+        payload = {
+            "model": "deepseek-chat",
+            "messages": messages,
+            "max_tokens": 1000,
+            "temperature": 0.7,
+            "top_p": 0.95
+        }
+        
+        response = requests.post(url, json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+        else:
+            st.error(f"API Error: {response.status_code} - {response.text}")
+            return "I apologize, but I'm unable to generate an argument at this time due to an API error."
     except Exception as e:
         st.error(f"Error generating con argument: {str(e)}")
         return "I apologize, but I'm unable to generate an argument at this time due to an API error."
