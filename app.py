@@ -24,6 +24,10 @@ if "topics" not in st.session_state:
     
 if "current_topic" not in st.session_state:
     st.session_state.current_topic = ""
+
+# Add this new session state variable for initial topic
+if "initial_topic" not in st.session_state:
+    st.session_state.initial_topic = ""
     
 if "pro_argument" not in st.session_state:
     st.session_state.pro_argument = ""
@@ -169,7 +173,7 @@ def next_round():
     """Advance to the next debate round"""
     st.session_state.round_number += 1
     st.session_state.vote_submitted = False
-    st.session_state.current_topic = ""
+    st.session_state.current_topic = ""  # Reset current topic so it can be set to initial_topic again
     st.session_state.pro_argument = ""
     st.session_state.con_argument = ""
 
@@ -180,13 +184,14 @@ def reset_debate():
     st.session_state.con_score = 0
     st.session_state.topics = []
     st.session_state.current_topic = ""
+    st.session_state.initial_topic = ""  # Clear the initial topic
     st.session_state.pro_argument = ""
     st.session_state.con_argument = ""
     st.session_state.vote_submitted = False
 
 # Streamlit UI
 st.title("AI Debate Platform")
-st.subheader("Get balanced arguments representing either side of an argument, and you vote for the most convincing side")
+st.subheader("Generate balanced arguments and vote for the most persuasive side")
 
 # Progress and score display
 col1, col2, col3 = st.columns(3)
@@ -215,20 +220,58 @@ if st.session_state.round_number > 5:
 else:
     # Topic input only if we don't have a current topic
     if not st.session_state.current_topic:
-        topic = st.text_input("Enter a debate topic:", 
+        # Only ask for a topic in round 1
+        if st.session_state.round_number == 1:
+            topic = st.text_input("Enter a debate topic:", 
                             placeholder="e.g., Should remote work become the standard for office jobs?",
                             key=f"topic_input_{st.session_state.round_number}")
-        
-        # Action button
-        if st.button("Generate Debate Arguments", key=f"generate_button_{st.session_state.round_number}"):
-            if not topic:
-                st.warning("Please enter a debate topic first.")
-            else:
-                st.session_state.current_topic = topic
+            
+            # Action button
+            if st.button("Generate Debate Arguments", key=f"generate_button_{st.session_state.round_number}"):
+                if not topic:
+                    st.warning("Please enter a debate topic first.")
+                else:
+                    st.session_state.current_topic = topic
+                    st.session_state.initial_topic = topic  # Store as initial topic
+                    
+                    # Show progress
+                    with st.spinner("Researching topic..."):
+                        search_query = f"{topic} facts research arguments"
+                        research_results = search_serpapi(search_query, num_results=8)
+                        
+                        if not research_results:
+                            st.error("Unable to retrieve research. Please try again.")
+                        else:
+                            # Generate arguments
+                            progress_bar = st.progress(0)
+                            
+                            st.markdown("### Generating PRO argument")
+                            pro_placeholder = st.empty()
+                            pro_placeholder.info("Thinking...")
+                            pro_argument = generate_pro_argument(topic, research_results)
+                            st.session_state.pro_argument = pro_argument
+                            progress_bar.progress(50)
+                            
+                            st.markdown("### Generating CON argument")
+                            con_placeholder = st.empty()
+                            con_placeholder.info("Thinking...")
+                            con_argument = generate_con_argument(topic, research_results)
+                            st.session_state.con_argument = con_argument
+                            progress_bar.progress(100)
+                            
+                            # Store the topic
+                            st.session_state.topics.append(topic)
+                            
+                            # Trigger a refresh
+                            st.rerun()  # Updated from experimental_rerun
+        else:
+            # For rounds 2-5, use the initial topic
+            if st.session_state.initial_topic:
+                st.session_state.current_topic = st.session_state.initial_topic
                 
                 # Show progress
-                with st.spinner("Researching topic..."):
-                    search_query = f"{topic} facts research arguments"
+                with st.spinner(f"Preparing round {st.session_state.round_number} with the same topic..."):
+                    search_query = f"{st.session_state.initial_topic} facts research arguments"
                     research_results = search_serpapi(search_query, num_results=8)
                     
                     if not research_results:
@@ -240,19 +283,16 @@ else:
                         st.markdown("### Generating PRO argument")
                         pro_placeholder = st.empty()
                         pro_placeholder.info("Thinking...")
-                        pro_argument = generate_pro_argument(topic, research_results)
+                        pro_argument = generate_pro_argument(st.session_state.initial_topic, research_results)
                         st.session_state.pro_argument = pro_argument
                         progress_bar.progress(50)
                         
                         st.markdown("### Generating CON argument")
                         con_placeholder = st.empty()
                         con_placeholder.info("Thinking...")
-                        con_argument = generate_con_argument(topic, research_results)
+                        con_argument = generate_con_argument(st.session_state.initial_topic, research_results)
                         st.session_state.con_argument = con_argument
                         progress_bar.progress(100)
-                        
-                        # Store the topic
-                        st.session_state.topics.append(topic)
                         
                         # Trigger a refresh
                         st.rerun()  # Updated from experimental_rerun
@@ -289,5 +329,5 @@ st.markdown("---")
 st.markdown("### How to use:")
 st.markdown("1. Enter a topic you want to debate")
 st.markdown("2. View the balanced arguments from both sides")
-st.markdown("3. Vote for the most convincing argument")
-st.markdown("4. Complete all 5 rounds to identify if you lean more towards the Pro Side or towards the Con Side")
+st.markdown("3. Vote for the most persuasive argument")
+st.markdown("4. Complete all 5 rounds to determine the winner")
