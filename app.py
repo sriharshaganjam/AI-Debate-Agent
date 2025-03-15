@@ -7,11 +7,11 @@ from datetime import datetime
 
 # Set API keys directly - this ensures they're available throughout the application
 os.environ["SERPAPI_API_KEY"] = "b1d3ccaa8b3dc0bd183b2ca10a6975131d5a07da5d4bfd5e1df1071b304044be"
-os.environ["DEEPSEEK_API_KEY"] = "sk-022f92d4757f4479803db4d2ced57cd0"
+# You'll need to sign up for a free Mistral API key at https://console.mistral.ai/
+MISTRAL_API_KEY = "wavz38qZTcHPOl1p6fC8BtgsqmskQDx4"  # Replace with your actual Mistral API key
 
 # Constants for API access
 SERPAPI_API_KEY = "b1d3ccaa8b3dc0bd183b2ca10a6975131d5a07da5d4bfd5e1df1071b304044be"
-DEEPSEEK_API_KEY = "sk-022f92d4757f4479803db4d2ced57cd0"
 
 # Cache for storing search results
 if "search_cache" not in st.session_state:
@@ -55,7 +55,7 @@ def search_serpapi(query, num_results=5):
     return []
 
 def generate_pro_argument(topic, research_results):
-    """Generate a pro argument using DeepSeek API with direct HTTP request"""
+    """Generate a pro argument using Mistral API"""
     # Convert research to a formatted string for the prompt
     research_text = "\n\n".join([
         f"Title: {item['title']}\nURL: {item['link']}\nSnippet: {item['snippet']}"
@@ -69,18 +69,17 @@ def generate_pro_argument(topic, research_results):
     ]
     
     try:
-        # Make direct HTTP request to DeepSeek API
-        url = "https://api.deepseek.com/v1/chat/completions"
+        # Make direct HTTP request to Mistral AI API
+        url = "https://api.mistral.ai/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {DEEPSEEK_API_KEY}"
+            "Authorization": f"Bearer {MISTRAL_API_KEY}"
         }
         payload = {
-            "model": "deepseek-chat",
+            "model": "mistral-small-latest",  # Free tier model
             "messages": messages,
             "max_tokens": 1000,
-            "temperature": 0.7,
-            "top_p": 0.95
+            "temperature": 0.7
         }
         
         response = requests.post(url, json=payload, headers=headers)
@@ -96,7 +95,7 @@ def generate_pro_argument(topic, research_results):
         return "I apologize, but I'm unable to generate an argument at this time due to an API error."
 
 def generate_con_argument(topic, research_results):
-    """Generate a con argument using DeepSeek API with direct HTTP request"""
+    """Generate a con argument using Mistral API"""
     # Convert research to a formatted string for the prompt
     research_text = "\n\n".join([
         f"Title: {item['title']}\nURL: {item['link']}\nSnippet: {item['snippet']}"
@@ -110,18 +109,17 @@ def generate_con_argument(topic, research_results):
     ]
     
     try:
-        # Make direct HTTP request to DeepSeek API
-        url = "https://api.deepseek.com/v1/chat/completions"
+        # Make direct HTTP request to Mistral AI API
+        url = "https://api.mistral.ai/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {DEEPSEEK_API_KEY}"
+            "Authorization": f"Bearer {MISTRAL_API_KEY}"
         }
         payload = {
-            "model": "deepseek-chat",
+            "model": "mistral-small-latest",  # Free tier model
             "messages": messages,
             "max_tokens": 1000,
-            "temperature": 0.7,
-            "top_p": 0.95
+            "temperature": 0.7
         }
         
         response = requests.post(url, json=payload, headers=headers)
@@ -160,17 +158,27 @@ st.subheader("Generate balanced arguments on any topic")
 # Topic input
 topic = st.text_input("Enter a debate topic:", placeholder="e.g., Should remote work become the standard for office jobs?")
 
+# Mistral API key input - allowing user to input their key
+mistral_api_key = st.sidebar.text_input("Mistral API Key:", 
+                                        value=MISTRAL_API_KEY, 
+                                        type="password",
+                                        help="Sign up for free at https://console.mistral.ai/")
+if mistral_api_key and mistral_api_key != "YOUR_MISTRAL_API_KEY":
+    MISTRAL_API_KEY = mistral_api_key
+
 # Display API key status for debugging
 st.sidebar.header("API Status")
 serpapi_status = "✅ Configured" if SERPAPI_API_KEY else "❌ Missing"
-deepseek_status = "✅ Configured" if DEEPSEEK_API_KEY else "❌ Missing"
+mistral_status = "✅ Ready" if MISTRAL_API_KEY and MISTRAL_API_KEY != "YOUR_MISTRAL_API_KEY" else "❌ Need API Key"
 st.sidebar.text(f"SerpAPI: {serpapi_status}")
-st.sidebar.text(f"DeepSeek: {deepseek_status}")
+st.sidebar.text(f"Mistral AI: {mistral_status}")
 
 # Action button
 if st.button("Generate Debate Arguments"):
     if not topic:
         st.warning("Please enter a debate topic first.")
+    elif MISTRAL_API_KEY == "YOUR_MISTRAL_API_KEY":
+        st.error("Please enter your Mistral API key in the sidebar.")
     else:
         # Show progress
         with st.spinner("Researching topic..."):
@@ -216,7 +224,9 @@ if st.button("Generate Debate Arguments"):
 # Add footer with instructions
 st.markdown("---")
 st.markdown("### How to use:")
-st.markdown("1. Enter a topic you want to debate")
-st.markdown("2. Click 'Generate Debate Arguments'")
-st.markdown("3. Review the balanced arguments from both sides")
-st.markdown("4. Save the debate if you wish to reference it later")
+st.markdown("1. Get a free Mistral API key from [console.mistral.ai](https://console.mistral.ai/)")
+st.markdown("2. Enter your API key in the sidebar")
+st.markdown("3. Enter a topic you want to debate")
+st.markdown("4. Click 'Generate Debate Arguments'")
+st.markdown("5. Review the balanced arguments from both sides")
+st.markdown("6. Save the debate if you wish to reference it later")
