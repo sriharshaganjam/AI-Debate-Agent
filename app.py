@@ -223,7 +223,7 @@ else:
         # Only ask for a topic in round 1
         if st.session_state.round_number == 1:
             topic = st.text_input("Enter a debate topic:", 
-                            placeholder="e.g., Should remote work become the standard for office jobs?",
+                            placeholder="e.g. Artificial Intelligence",
                             key=f"topic_input_{st.session_state.round_number}")
             
             # Action button
@@ -328,6 +328,8 @@ else:
 st.markdown("---")
 st.markdown("### How to use:")
 st.markdown("1. Enter a topic you want the virtual debater to debate on")
-st.markdown("2. View the balanced arguments from both sides and decide what points make the most sense")
-st.markdown("3. Vote for the most persuasive argument")
-st.markdown("4. Complete all 5 rounds to identify if you are more Pro or more Con for the topic in discussion")
+st.markdown("2. The Topic should be given as a phrase for eg 'Artificial Intelligence' and NOT as a statement like 'Artificial Intelligence is good' since such statements can bias the debate even before it begins")
+st.markdown("3. The debaters will debate on your identified topic e.g Artificial Intelligence, with the Pro Debater debating for 'Artificial Intelligence is Good' and the Con Debater debating for 'Artificial Intelligence is Bad' ")
+st.markdown("4. View the arguments from both sides and decide what points make the most sense")
+st.markdown("5. Vote for the most persuasive argument")
+st.markdown("6. Complete all 5 rounds to identify if you are more Pro or more Con for the topic in discussion")
