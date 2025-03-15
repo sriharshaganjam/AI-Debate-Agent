@@ -327,7 +327,7 @@ else:
 # Add footer with instructions
 st.markdown("---")
 st.markdown("### How to use:")
-st.markdown("1. Enter a topic you want to debate")
-st.markdown("2. View the balanced arguments from both sides")
+st.markdown("1. Enter a topic you want the virtual debater to debate on")
+st.markdown("2. View the balanced arguments from both sides and decide what points make the most sense")
 st.markdown("3. Vote for the most persuasive argument")
-st.markdown("4. Complete all 5 rounds to determine the winner")
+st.markdown("4. Complete all 5 rounds to identify wheter you allign more with the Pro Side of with Con Side")
