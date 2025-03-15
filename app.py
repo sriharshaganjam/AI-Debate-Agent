@@ -38,6 +38,10 @@ if "con_argument" not in st.session_state:
 if "vote_submitted" not in st.session_state:
     st.session_state.vote_submitted = False
 
+# Add this new session state variable for word limit
+if "word_limit" not in st.session_state:
+    st.session_state.word_limit = 150
+
 # Cache for storing search results
 if "search_cache" not in st.session_state:
     st.session_state.search_cache = {}
@@ -79,8 +83,8 @@ def search_serpapi(query, num_results=5):
     # Return empty list if search fails
     return []
 
-def generate_pro_argument(topic, research_results):
-    """Generate a pro argument using Mistral API and limit to 250 words"""
+def generate_pro_argument(topic, research_results, word_limit=150):
+    """Generate a pro argument using Mistral API and limit to specified word count"""
     # Convert research to a formatted string for the prompt
     research_text = "\n\n".join([
         f"Title: {item['title']}\nURL: {item['link']}\nSnippet: {item['snippet']}"
@@ -89,8 +93,8 @@ def generate_pro_argument(topic, research_results):
     
     # Create the messages for the API call with word limit instruction
     messages = [
-        {"role": "system", "content": "You are a skilled debater who makes strong, well-reasoned arguments in favor of a position. Use specific facts and citations from the research provided. Be persuasive and focus on the strongest points in favor of the position. Keep your response under 250 words."},
-        {"role": "user", "content": f"Please generate a strong PRO argument for the following topic:\n\nTOPIC: {topic}\n\nBased on these research findings:\n\n{research_text}\n\nCreate a structured, persuasive argument that incorporates relevant information from the research. Your response MUST be under 250 words."}
+        {"role": "system", "content": f"You are a skilled debater who makes strong, well-reasoned arguments in favor of a position. Use specific facts and citations from the research provided. Be persuasive and focus on the strongest points in favor of the position. Keep your response under {word_limit} words."},
+        {"role": "user", "content": f"Please generate a strong PRO argument for the following topic:\n\nTOPIC: {topic}\n\nBased on these research findings:\n\n{research_text}\n\nCreate a structured, persuasive argument that incorporates relevant information from the research. Your response MUST be under {word_limit} words."}
     ]
     
     try:
@@ -103,7 +107,7 @@ def generate_pro_argument(topic, research_results):
         payload = {
             "model": "mistral-small-latest",  # Free tier model
             "messages": messages,
-            "max_tokens": 400,  # Limit token count (~250 words)
+            "max_tokens": int(word_limit * 1.6),  # Approximate token count for word limit
             "temperature": 0.7
         }
         
@@ -119,8 +123,8 @@ def generate_pro_argument(topic, research_results):
         st.error(f"Error generating pro argument: {str(e)}")
         return "I apologize, but I'm unable to generate an argument at this time due to an API error."
 
-def generate_con_argument(topic, research_results):
-    """Generate a con argument using Mistral API and limit to 250 words"""
+def generate_con_argument(topic, research_results, word_limit=150):
+    """Generate a con argument using Mistral API and limit to specified word count"""
     # Convert research to a formatted string for the prompt
     research_text = "\n\n".join([
         f"Title: {item['title']}\nURL: {item['link']}\nSnippet: {item['snippet']}"
@@ -129,8 +133,8 @@ def generate_con_argument(topic, research_results):
     
     # Create the messages for the API call with word limit instruction
     messages = [
-        {"role": "system", "content": "You are a skilled debater who makes strong, well-reasoned arguments against a position. Use specific facts and citations from the research provided. Be persuasive and focus on the strongest points against the position. Keep your response under 250 words."},
-        {"role": "user", "content": f"Please generate a strong CON argument for the following topic:\n\nTOPIC: {topic}\n\nBased on these research findings:\n\n{research_text}\n\nCreate a structured, persuasive argument that incorporates relevant information from the research. Your response MUST be under 250 words."}
+        {"role": "system", "content": f"You are a skilled debater who makes strong, well-reasoned arguments against a position. Use specific facts and citations from the research provided. Be persuasive and focus on the strongest points against the position. Keep your response under {word_limit} words."},
+        {"role": "user", "content": f"Please generate a strong CON argument for the following topic:\n\nTOPIC: {topic}\n\nBased on these research findings:\n\n{research_text}\n\nCreate a structured, persuasive argument that incorporates relevant information from the research. Your response MUST be under {word_limit} words."}
     ]
     
     try:
@@ -143,7 +147,7 @@ def generate_con_argument(topic, research_results):
         payload = {
             "model": "mistral-small-latest",  # Free tier model
             "messages": messages, 
-            "max_tokens": 400,  # Limit token count (~250 words)
+            "max_tokens": int(word_limit * 1.6),  # Approximate token count for word limit
             "temperature": 0.7
         }
         
@@ -188,6 +192,7 @@ def reset_debate():
     st.session_state.pro_argument = ""
     st.session_state.con_argument = ""
     st.session_state.vote_submitted = False
+    # Keep the word limit as is for new debates
 
 # Streamlit UI
 st.title("AI Debate Platform")
@@ -223,8 +228,18 @@ else:
         # Only ask for a topic in round 1
         if st.session_state.round_number == 1:
             topic = st.text_input("Enter a debate topic:", 
-                            placeholder="e.g. Artificial Intelligence",
+                            placeholder="e.g.Artificial Intelliigence",
                             key=f"topic_input_{st.session_state.round_number}")
+            
+            # Word limit slider - only show in round 1
+            st.session_state.word_limit = st.slider(
+                "Maximum words per argument:", 
+                min_value=50, 
+                max_value=250, 
+                value=150, 
+                step=50,
+                help="Set the maximum number of words for each debate argument"
+            )
             
             # Action button
             if st.button("Generate Debate Arguments", key=f"generate_button_{st.session_state.round_number}"):
@@ -248,14 +263,14 @@ else:
                             st.markdown("### Generating PRO argument")
                             pro_placeholder = st.empty()
                             pro_placeholder.info("Thinking...")
-                            pro_argument = generate_pro_argument(topic, research_results)
+                            pro_argument = generate_pro_argument(topic, research_results, st.session_state.word_limit)
                             st.session_state.pro_argument = pro_argument
                             progress_bar.progress(50)
                             
                             st.markdown("### Generating CON argument")
                             con_placeholder = st.empty()
                             con_placeholder.info("Thinking...")
-                            con_argument = generate_con_argument(topic, research_results)
+                            con_argument = generate_con_argument(topic, research_results, st.session_state.word_limit)
                             st.session_state.con_argument = con_argument
                             progress_bar.progress(100)
                             
@@ -283,14 +298,14 @@ else:
                         st.markdown("### Generating PRO argument")
                         pro_placeholder = st.empty()
                         pro_placeholder.info("Thinking...")
-                        pro_argument = generate_pro_argument(st.session_state.initial_topic, research_results)
+                        pro_argument = generate_pro_argument(st.session_state.initial_topic, research_results, st.session_state.word_limit)
                         st.session_state.pro_argument = pro_argument
                         progress_bar.progress(50)
                         
                         st.markdown("### Generating CON argument")
                         con_placeholder = st.empty()
                         con_placeholder.info("Thinking...")
-                        con_argument = generate_con_argument(st.session_state.initial_topic, research_results)
+                        con_argument = generate_con_argument(st.session_state.initial_topic, research_results, st.session_state.word_limit)
                         st.session_state.con_argument = con_argument
                         progress_bar.progress(100)
                         
