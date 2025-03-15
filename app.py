@@ -211,7 +211,7 @@ if st.session_state.round_number > 5:
     # Option to start a new debate
     if st.button("Start New Debate Series"):
         reset_debate()
-        st.experimental_rerun()
+        st.rerun()  # Updated from experimental_rerun
 else:
     # Topic input only if we don't have a current topic
     if not st.session_state.current_topic:
@@ -255,7 +255,7 @@ else:
                         st.session_state.topics.append(topic)
                         
                         # Trigger a refresh
-                        st.experimental_rerun()
+                        st.rerun()  # Updated from experimental_rerun
     
     # Display current debate if we have a topic
     if st.session_state.current_topic:
