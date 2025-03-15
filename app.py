@@ -186,7 +186,7 @@ def reset_debate():
 
 # Streamlit UI
 st.title("AI Debate Platform")
-st.subheader("Generate balanced arguments and vote for the most persuasive side")
+st.subheader("Get balanced arguments representing either side of an argument, and you vote for the most convincing side")
 
 # Progress and score display
 col1, col2, col3 = st.columns(3)
