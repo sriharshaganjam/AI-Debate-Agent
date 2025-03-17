@@ -46,7 +46,7 @@ if "word_limit" not in st.session_state:
 if "search_cache" not in st.session_state:
     st.session_state.search_cache = {}
 
-def search_serpapi(query, num_results=5):
+def search_serpapi(query, num_results=10):
     """Search using SerpAPI with caching"""
     # Check cache first
     cache_key = f"{query}_{num_results}"
