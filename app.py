@@ -4,6 +4,9 @@ import time
 import json
 import requests
 from datetime import datetime
+import bs4
+from bs4 import BeautifulSoup
+import re
 
 # Set API keys directly and hide them from the UI
 SERPAPI_API_KEY = "b1d3ccaa8b3dc0bd183b2ca10a6975131d5a07da5d4bfd5e1df1071b304044be"
@@ -83,13 +86,212 @@ def search_serpapi(query, num_results=10):
     # Return empty list if search fails
     return []
 
+def scrape_with_beautifulsoup(url):
+    """Scrape detailed content from a URL using BeautifulSoup"""
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Remove script and style elements
+            for script in soup(["script", "style"]):
+                script.decompose()
+                
+            # Get text
+            text = soup.get_text(separator='\n')
+            
+            # Clean up text
+            lines = (line.strip() for line in text.splitlines())
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            text = '\n'.join(chunk for chunk in chunks if chunk)
+            
+            # Return first 5000 characters to keep it manageable
+            return text[:5000]
+        else:
+            return f"Failed to retrieve content: Status code {response.status_code}"
+    except Exception as e:
+        return f"Error scraping content: {str(e)}"
+
+def search_google_with_scraping(query, num_results=5):
+    """Search Google and scrape detailed content"""
+    basic_results = search_serpapi(query, num_results)
+    detailed_results = []
+    
+    for result in basic_results[:3]:  # Limit to top 3 results for performance
+        url = result["link"]
+        content = scrape_with_beautifulsoup(url)
+        detailed_result = {
+            "title": result["title"],
+            "link": url,
+            "content": content
+        }
+        detailed_results.append(detailed_result)
+    
+    return detailed_results
+
+def search_wikipedia(query):
+    """Search Wikipedia and extract detailed content"""
+    search_url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={query}&format=json"
+    
+    try:
+        response = requests.get(search_url)
+        if response.status_code == 200:
+            results = response.json()
+            if "query" in results and "search" in results["query"] and len(results["query"]["search"]) > 0:
+                # Get the first result
+                first_result = results["query"]["search"][0]
+                page_title = first_result["title"]
+                
+                # Get the full page content
+                content_url = f"https://en.wikipedia.org/api/rest_v1/page/html/{page_title.replace(' ', '_')}"
+                content_response = requests.get(content_url)
+                
+                if content_response.status_code == 200:
+                    # Parse HTML content
+                    soup = BeautifulSoup(content_response.text, 'html.parser')
+                    
+                    # Remove unwanted elements
+                    for element in soup(['script', 'style', 'aside', 'footer', 'header']):
+                        element.decompose()
+                    
+                    # Extract text
+                    text = soup.get_text(separator='\n')
+                    
+                    # Clean up text
+                    lines = (line.strip() for line in text.splitlines())
+                    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                    text = '\n'.join(chunk for chunk in chunks if chunk)
+                    
+                    return [{
+                        "title": page_title,
+                        "link": f"https://en.wikipedia.org/wiki/{page_title.replace(' ', '_')}",
+                        "content": text[:8000]  # Limit to 8000 chars
+                    }]
+                else:
+                    return [{
+                        "title": "Wikipedia Error",
+                        "link": "",
+                        "content": f"Failed to retrieve Wikipedia content: Status code {content_response.status_code}"
+                    }]
+            else:
+                return [{
+                    "title": "No Wikipedia Results",
+                    "link": "",
+                    "content": f"No Wikipedia articles found for '{query}'"
+                }]
+        else:
+            return [{
+                "title": "Wikipedia API Error",
+                "link": "",
+                "content": f"Failed to search Wikipedia: Status code {response.status_code}"
+            }]
+    except Exception as e:
+        return [{
+            "title": "Wikipedia Search Error",
+            "link": "",
+            "content": f"Error searching Wikipedia: {str(e)}"
+        }]
+
+def search_reddit(query):
+    """Search Reddit and extract detailed content"""
+    search_url = f"https://www.reddit.com/search.json?q={query}&sort=relevance&limit=5"
+    
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        response = requests.get(search_url, headers=headers)
+        
+        if response.status_code == 200:
+            results = response.json()
+            if "data" in results and "children" in results["data"]:
+                posts = results["data"]["children"]
+                detailed_results = []
+                
+                for post in posts[:3]:  # Limit to top 3 posts
+                    post_data = post["data"]
+                    post_id = post_data.get("id")
+                    subreddit = post_data.get("subreddit")
+                    title = post_data.get("title", "No title")
+                    selftext = post_data.get("selftext", "")
+                    permalink = post_data.get("permalink", "")
+                    
+                    # Get comments for this post
+                    if permalink:
+                        comments_url = f"https://www.reddit.com{permalink}.json"
+                        comments_response = requests.get(comments_url, headers=headers)
+                        
+                        comments_text = ""
+                        if comments_response.status_code == 200:
+                            comments_data = comments_response.json()
+                            if len(comments_data) > 1 and "data" in comments_data[1] and "children" in comments_data[1]["data"]:
+                                comments = comments_data[1]["data"]["children"]
+                                for comment in comments[:10]:  # Limit to top 10 comments
+                                    if "data" in comment and "body" in comment["data"]:
+                                        comments_text += f"Comment: {comment['data']['body']}\n\n"
+                    
+                    # Combine post content and comments
+                    content = f"Title: {title}\n\nPost content: {selftext}\n\nComments:\n{comments_text}"
+                    
+                    detailed_results.append({
+                        "title": f"Reddit: {title}",
+                        "link": f"https://www.reddit.com{permalink}",
+                        "content": content[:5000]  # Limit to 5000 chars
+                    })
+                
+                return detailed_results
+            else:
+                return [{
+                    "title": "No Reddit Results",
+                    "link": "",
+                    "content": f"No Reddit posts found for '{query}'"
+                }]
+        else:
+            return [{
+                "title": "Reddit API Error",
+                "link": "",
+                "content": f"Failed to search Reddit: Status code {response.status_code}"
+            }]
+    except Exception as e:
+        return [{
+            "title": "Reddit Search Error",
+            "link": "",
+            "content": f"Error searching Reddit: {str(e)}"
+        }]
+
+def get_research_for_round(topic, round_number):
+    """Get research from different sources based on round number"""
+    if round_number == 1:
+        # Round 1: Google Search with BeautifulSoup scraping
+        return search_google_with_scraping(f"{topic} facts research arguments")
+    elif round_number == 2:
+        # Round 2: Wikipedia
+        return search_wikipedia(topic)
+    elif round_number == 3:
+        # Round 3: Reddit
+        return search_reddit(f"{topic} debate discussion")
+    else:
+        return []
+
+def format_research_for_prompt(research_results):
+    """Format research results for AI prompt"""
+    formatted_text = ""
+    
+    for i, item in enumerate(research_results, 1):
+        formatted_text += f"Source {i}:\n"
+        formatted_text += f"Title: {item['title']}\n"
+        formatted_text += f"URL: {item['link']}\n"
+        formatted_text += f"Content: {item.get('content', item.get('snippet', 'No content available'))}\n\n"
+    
+    return formatted_text
+
 def generate_pro_argument(topic, research_results, word_limit=150):
     """Generate a pro argument using Mistral API and limit to specified word count"""
     # Convert research to a formatted string for the prompt
-    research_text = "\n\n".join([
-        f"Title: {item['title']}\nURL: {item['link']}\nSnippet: {item['snippet']}"
-        for item in research_results
-    ])
+    research_text = format_research_for_prompt(research_results)
     
     # Create the messages for the API call with word limit instruction
     messages = [
@@ -126,10 +328,7 @@ def generate_pro_argument(topic, research_results, word_limit=150):
 def generate_con_argument(topic, research_results, word_limit=150):
     """Generate a con argument using Mistral API and limit to specified word count"""
     # Convert research to a formatted string for the prompt
-    research_text = "\n\n".join([
-        f"Title: {item['title']}\nURL: {item['link']}\nSnippet: {item['snippet']}"
-        for item in research_results
-    ])
+    research_text = format_research_for_prompt(research_results)
     
     # Create the messages for the API call with word limit instruction
     messages = [
@@ -201,14 +400,14 @@ st.subheader("Generate balanced arguments and vote for the most persuasive side"
 # Progress and score display
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Round", f"{st.session_state.round_number}/5")
+    st.metric("Round", f"{st.session_state.round_number}/3")  # Changed from 5 to 3
 with col2:
     st.metric("PRO Score", st.session_state.pro_score)
 with col3:
     st.metric("CON Score", st.session_state.con_score)
 
 # Check if we're at the final results
-if st.session_state.round_number > 5:
+if st.session_state.round_number > 3:  # Changed from 5 to 3
     st.header("Final Results")
     
     if st.session_state.pro_score > st.session_state.con_score:
@@ -221,14 +420,22 @@ if st.session_state.round_number > 5:
     # Option to start a new debate
     if st.button("Start New Debate Series"):
         reset_debate()
-        st.rerun()  # Updated from experimental_rerun
+        st.rerun()
 else:
+    # Display the current data source based on round
+    if st.session_state.round_number == 1:
+        st.info("Round 1: Arguments based on Google Search results")
+    elif st.session_state.round_number == 2:
+        st.info("Round 2: Arguments based on Wikipedia information")
+    elif st.session_state.round_number == 3:
+        st.info("Round 3: Arguments based on Reddit discussions")
+    
     # Topic input only if we don't have a current topic
     if not st.session_state.current_topic:
         # Only ask for a topic in round 1
         if st.session_state.round_number == 1:
             topic = st.text_input("Enter a debate topic:", 
-                            placeholder="e.g.Artificial Intelliigence",
+                            placeholder="e.g. Artificial Intelligence",
                             key=f"topic_input_{st.session_state.round_number}")
             
             # Word limit slider - only show in round 1
@@ -250,9 +457,9 @@ else:
                     st.session_state.initial_topic = topic  # Store as initial topic
                     
                     # Show progress
-                    with st.spinner("Researching topic..."):
-                        search_query = f"{topic} facts research arguments"
-                        research_results = search_serpapi(search_query, num_results=8)
+                    with st.spinner(f"Researching topic from {['Google Search', 'Wikipedia', 'Reddit'][st.session_state.round_number-1]}..."):
+                        # Get research based on the current round
+                        research_results = get_research_for_round(topic, st.session_state.round_number)
                         
                         if not research_results:
                             st.error("Unable to retrieve research. Please try again.")
@@ -278,16 +485,16 @@ else:
                             st.session_state.topics.append(topic)
                             
                             # Trigger a refresh
-                            st.rerun()  # Updated from experimental_rerun
+                            st.rerun()
         else:
-            # For rounds 2-5, use the initial topic
+            # For rounds 2-3, use the initial topic
             if st.session_state.initial_topic:
                 st.session_state.current_topic = st.session_state.initial_topic
                 
                 # Show progress
-                with st.spinner(f"Preparing round {st.session_state.round_number} with the same topic..."):
-                    search_query = f"{st.session_state.initial_topic} facts research arguments"
-                    research_results = search_serpapi(search_query, num_results=8)
+                with st.spinner(f"Researching topic from {['Google Search', 'Wikipedia', 'Reddit'][st.session_state.round_number-1]}..."):
+                    # Get research based on the current round
+                    research_results = get_research_for_round(st.session_state.initial_topic, st.session_state.round_number)
                     
                     if not research_results:
                         st.error("Unable to retrieve research. Please try again.")
@@ -310,7 +517,7 @@ else:
                         progress_bar.progress(100)
                         
                         # Trigger a refresh
-                        st.rerun()  # Updated from experimental_rerun
+                        st.rerun()
     
     # Display current debate if we have a topic
     if st.session_state.current_topic:
@@ -332,7 +539,7 @@ else:
         
         # Display voting result and next round button
         if st.session_state.vote_submitted:
-            if st.session_state.round_number < 5:
+            if st.session_state.round_number < 3:  # Changed from 5 to 3
                 st.success("Vote recorded! Continue to the next round.")
                 st.button("Next Round", key="next_round", on_click=next_round)
             else:
@@ -347,4 +554,4 @@ st.markdown("2. The Topic should be given as a phrase for eg 'Artificial Intelli
 st.markdown("3. The debaters will debate on your identified topic e.g Artificial Intelligence, with the Pro Debater debating for 'Artificial Intelligence is Good' and the Con Debater debating for 'Artificial Intelligence is Bad' ")
 st.markdown("4. View the arguments from both sides and decide what points make the most sense")
 st.markdown("5. Vote for the most persuasive argument")
-st.markdown("6. Complete all 5 rounds to identify if you are more Pro or more Con for the topic in discussion")
+st.markdown("6. Complete all 3 rounds to identify if you are more Pro or more Con for the topic in discussion")  # Changed from 5 to 3
