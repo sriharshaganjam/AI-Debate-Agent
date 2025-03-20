@@ -478,7 +478,7 @@ else:
         # Only ask for a topic in round 1
         if st.session_state.round_number == 1:
             topic = st.text_input("Enter a debate topic:", 
-                            placeholder="e.g. Artificial Intelligence",
+                            placeholder="e.g. Artificial Intelligence OR Work From Home OR God...",
                             key=f"topic_input_{st.session_state.round_number}")
             
             # Word limit slider - only show in round 1
