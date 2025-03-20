@@ -410,12 +410,39 @@ with col3:
 if st.session_state.round_number > 3:  # Changed from 5 to 3
     st.header("Final Results")
     
+    # Create a visually bold final result announcement
     if st.session_state.pro_score > st.session_state.con_score:
         st.success(f"PRO debater wins with {st.session_state.pro_score} points vs {st.session_state.con_score} points!")
+        
+        # Add the bold final stance announcement
+        st.markdown(f"""
+        <div style="background-color:#4CAF50; padding:20px; border-radius:10px; margin:20px 0; text-align:center;">
+            <h1 style="color:white; margin:0;">Your Final Stance: FOR {st.session_state.initial_topic.upper()}</h1>
+            <p style="color:white; font-size:18px; margin:10px 0 0 0;">Based on your voting patterns, you tend to agree with the PRO arguments.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
     elif st.session_state.con_score > st.session_state.pro_score:
         st.success(f"CON debater wins with {st.session_state.con_score} points vs {st.session_state.pro_score} points!")
+        
+        # Add the bold final stance announcement
+        st.markdown(f"""
+        <div style="background-color:#F44336; padding:20px; border-radius:10px; margin:20px 0; text-align:center;">
+            <h1 style="color:white; margin:0;">Your Final Stance: AGAINST {st.session_state.initial_topic.upper()}</h1>
+            <p style="color:white; font-size:18px; margin:10px 0 0 0;">Based on your voting patterns, you tend to agree with the CON arguments.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
     else:
         st.info(f"The debate ends in a tie! Both debaters scored {st.session_state.pro_score} points.")
+        
+        # Add the bold final stance announcement for a tie
+        st.markdown(f"""
+        <div style="background-color:#2196F3; padding:20px; border-radius:10px; margin:20px 0; text-align:center;">
+            <h1 style="color:white; margin:0;">Your Final Stance: NEUTRAL ON {st.session_state.initial_topic.upper()}</h1>
+            <p style="color:white; font-size:18px; margin:10px 0 0 0;">Based on your voting patterns, you seem to value both sides of the argument equally.</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Option to start a new debate
     if st.button("Start New Debate Series"):
