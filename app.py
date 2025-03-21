@@ -597,4 +597,4 @@ st.markdown("2. The Topic should be given as a phrase for eg 'Artificial Intelli
 st.markdown("3. The debaters will debate on your identified topic e.g Artificial Intelligence, with the Pro Debater debating for 'Artificial Intelligence is Good' and the Con Debater debating for 'Artificial Intelligence is Bad' ")
 st.markdown("4. View the arguments from both sides and decide what points make the most sense")
 st.markdown("5. Vote for the most persuasive argument")
-st.markdown("6. Complete all 3 rounds to identify if you are more Pro or more Con for the topic in discussion")  # Changed from 5 to 3
+st.markdown("6. Complete all 3 rounds to identify if you are Pro or more Con for the topic in discussion")  # Changed from 5 to 3
